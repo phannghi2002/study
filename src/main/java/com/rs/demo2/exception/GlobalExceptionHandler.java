@@ -1,12 +1,10 @@
 package com.rs.demo2.exception;
 
-import com.rs.demo2.dto.request.ApiResponse;
+import com.rs.demo2.dto.response.ApiResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-
-import java.io.IOException;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {

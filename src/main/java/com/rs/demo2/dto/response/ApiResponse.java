@@ -1,4 +1,4 @@
-package com.rs.demo2.dto.request;
+package com.rs.demo2.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;
@@ -11,7 +11,8 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ApiResponse<T> {
-    int code = 1000;
+    //khi tra ve ket qua la ApiResponse neu nguoi dung dung builder va khong gan gia tri cua code thi no mac dinh tra ve 1000
+    @Builder.Default int code = 1000;
     String message;
     T result;
 }
