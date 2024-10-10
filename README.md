@@ -1,1 +1,1 @@
-handle exception advance and normally API
+handle exception advance and normally API response
