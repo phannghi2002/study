@@ -1,0 +1,29 @@
+#server.port=8090
+#server.servlet.context-path=/identity
+#
+#spring.datasource.url=jdbc:mysql://localhost:3310/identity_service
+#spring.datasource.username=root
+#spring.datasource.password=root
+#
+#spring.jpa.hibernate.ddl-auto=update
+#spring.jpa.show-sql=true
+
+server:
+  port: 8090
+  servlet:
+    context-path: /identity
+
+spring:
+  application:
+    name: demo2
+  datasource:
+    url: "jdbc:mysql://localhost:3310/identity_service"
+    username: root
+    password: root
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+jwt:
+  signerKey: "+L8ksVUN16GK7hw/14qZV1RjdfZrSzf6UFCb/byhPpz7m9ls7SFE+zd0CGhwAx3f"
