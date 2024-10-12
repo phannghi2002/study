@@ -13,13 +13,17 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PostAuthorize;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
 import java.util.HashSet;
 import java.util.List;
 
+
+@Slf4j
 @Service
 @RequiredArgsConstructor //thay the Autowired
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -78,12 +82,27 @@ public class UserService {
 
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     public List<UserResponse> getAllUser() {
+        log.info("in method get users");
         return userMapper.toUserResponse(userRepository.findAll());
     }
 
+    //nay la duoc dung cho cai dk la vua co id cua nguoi dung, vua co token phu hop voi id cua nguoi dung
+    //POST khac Pre o cho la POST se thuc hien cau lenh ben trong roi moi kiem tra dieu kien phu hop, neu dung moi tra ve ket qua
+    //post dung cho truong hop lay thong tin cua ban than ra, nguoi khac khong the lay duoc thong tin cua minh
+    //Pre kiem tra dieu kien neu dung thi moi thuc hien cau lenh
+    @PostAuthorize("returnObject.userName == authentication.name")
     public UserResponse getSingleUser(String userID) {
+        log.info("Method is working");
         return userMapper.toUserResponse(userRepository.findById(userID).orElseThrow(() -> new RuntimeException("User not found")));
+    }
+
+    public UserResponse getInfoFromToken() {
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        User user = userRepository.findByUserName(authentication.getName()).orElseThrow(()-> new AppException(ErrorCode.USER_NOT_EXISTED));
+
+        return userMapper.toUserResponse(user);
     }
 
     public UserResponse updateUser(String userID, UserUpdateRequest request) {

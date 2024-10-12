@@ -55,14 +55,8 @@ public class UserController {
 
     @GetMapping("/getInfoFromToken")
     ApiResponse<UserResponse> getInfoFromToken() {
-        var authentication = SecurityContextHolder.getContext().getAuthentication();
-        var resultAuth = userRepository.findByUserName(authentication.getName());
-        if (resultAuth.isEmpty()) {
-            throw new AppException(ErrorCode.USER_NOT_EXISTED);
-        }
-
         return ApiResponse.<UserResponse>builder()
-                .result(userService.getSingleUser(resultAuth.get().getId()))
+                .result(userService.getInfoFromToken())
                 .build();
     }
 
