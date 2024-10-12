@@ -4,6 +4,7 @@ import com.rs.demo2.dto.request.UserCreateRequest;
 import com.rs.demo2.dto.request.UserUpdateRequest;
 import com.rs.demo2.dto.response.UserResponse;
 import com.rs.demo2.entity.User;
+import com.rs.demo2.enums.Role;
 import com.rs.demo2.exception.AppException;
 import com.rs.demo2.exception.ErrorCode;
 import com.rs.demo2.mapper.UserMapper;
@@ -16,15 +17,19 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.HashSet;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor //thay the Autowired
-@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true) //makeFinal nghia la neu khong dinh nghia gi het thi no tu dong ding nghia la final
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+//makeFinal nghia la neu khong dinh nghia gi het thi no tu dong ding nghia la final
 public class UserService {
     UserRepository userRepository;
 
     UserMapper userMapper;
+
+    PasswordEncoder passwordEncoder;
 
     public User createRequest(UserCreateRequest request) {
         if (userRepository.existsByUserName(request.getUserName())) {
@@ -62,8 +67,12 @@ public class UserService {
 
         //dung mapper
         User user = userMapper.toUser(request);
-        PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+
         user.setPassword(passwordEncoder.encode(request.getPassword()));
+
+        HashSet<String> roles = new HashSet<>();
+        roles.add(Role.USER.name());
+        user.setRoles(roles);
 
         return userRepository.save(user);
 

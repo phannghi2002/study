@@ -1,15 +1,23 @@
 package com.rs.demo2.controller;
 
+import com.rs.demo2.dto.request.IntrospectRequest;
 import com.rs.demo2.dto.response.ApiResponse;
 import com.rs.demo2.dto.request.UserCreateRequest;
 import com.rs.demo2.dto.request.UserUpdateRequest;
+import com.rs.demo2.dto.response.AuthenticationResponse;
 import com.rs.demo2.dto.response.UserResponse;
 import com.rs.demo2.entity.User;
+import com.rs.demo2.exception.AppException;
+import com.rs.demo2.exception.ErrorCode;
+import com.rs.demo2.repository.UserRepository;
 import com.rs.demo2.service.UserService;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,7 +27,9 @@ import java.util.List;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class UserController {
 
+    private static final Logger log = LoggerFactory.getLogger(UserController.class);
     UserService userService;
+    private final UserRepository userRepository;
 
     @PostMapping("/users")
     ApiResponse<User> createUser(@RequestBody @Valid UserCreateRequest request) {
@@ -30,25 +40,53 @@ public class UserController {
     }
 
     @GetMapping("/users")
-    List<UserResponse> getAllUser() {
-        return userService.getAllUser();
+    ApiResponse<List<UserResponse>> getAllUser() {
+
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        log.info("Username: {}", authentication.getName());
+        authentication.getAuthorities().forEach(grantedAuthority -> log.info(grantedAuthority.getAuthority()));
+
+
+        return ApiResponse.<List<UserResponse>>builder()
+                .result(userService.getAllUser())
+                .build();
+    }
+
+    @GetMapping("/getInfoFromToken")
+    ApiResponse<UserResponse> getInfoFromToken() {
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        var resultAuth = userRepository.findByUserName(authentication.getName());
+        if (resultAuth.isEmpty()) {
+            throw new AppException(ErrorCode.USER_NOT_EXISTED);
+        }
+
+        return ApiResponse.<UserResponse>builder()
+                .result(userService.getSingleUser(resultAuth.get().getId()))
+                .build();
     }
 
     @GetMapping("/{userId}")
-    UserResponse getSingleUser(@PathVariable String userId) {
-        return userService.getSingleUser(userId);
+    ApiResponse<UserResponse> getSingleUser(@PathVariable String userId) {
+        return ApiResponse.<UserResponse>builder()
+                .result(userService.getSingleUser(userId))
+                .build();
     }
 
     @PutMapping("/{userId}")
-    UserResponse updateUser(@PathVariable String userId, @RequestBody UserUpdateRequest request) {
+    ApiResponse<UserResponse> updateUser(@PathVariable String userId, @RequestBody UserUpdateRequest request) {
 
-        return userService.updateUser(userId, request);
+        return ApiResponse.<UserResponse>builder()
+                .result(userService.updateUser(userId, request))
+                .build();
     }
 
     @DeleteMapping("/{userId}")
-    String deleteUser(@PathVariable String userId) {
+    ApiResponse<String> deleteUser(@PathVariable String userId) {
         userService.deleteUser(userId);
 
-        return "Delete success";
+        return ApiResponse.<String>builder()
+                .result("Delete user success")
+                .build();
     }
 }

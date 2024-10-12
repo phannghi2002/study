@@ -6,10 +6,12 @@ import com.rs.demo2.dto.request.IntrospectRequest;
 import com.rs.demo2.dto.response.ApiResponse;
 import com.rs.demo2.dto.response.AuthenticationResponse;
 import com.rs.demo2.dto.response.IntrospectResponse;
+import com.rs.demo2.dto.response.UserResponse;
 import com.rs.demo2.service.AuthenticationService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -32,6 +34,7 @@ public class AuthenticationController {
                 .result(resultAuth)
                 .build();
     }
+
 
     @PostMapping("/introspect")
     ApiResponse<IntrospectResponse> authenticate(@RequestBody IntrospectRequest request) throws ParseException, JOSEException {
