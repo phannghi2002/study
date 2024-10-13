@@ -45,7 +45,13 @@ public class SecurityConfig {
         //providerManager, khi dung jwtConfigurer.decoder thi Oauth2 no tu dong lay token trong Authorization header ma ta khong can phai truyen
         //token vao
         httpSecurity.oauth2ResourceServer(oath2 -> oath2.jwt(jwtConfigurer -> jwtConfigurer.decoder(jwtDecoder())
-                .jwtAuthenticationConverter(jwtAuthenticationConverter())));
+                .jwtAuthenticationConverter(jwtAuthenticationConverter()))
+//chinh sua lai loi mac dinh trong security boi vi neu no ko duoc xac thuc (loi 401 Unauthorized) thi no se xu ly loi mac dinh cua spring security chu khong chay vao
+ // phan xu ly loi trong GlobalExceptionHandler ma ta dinh nghia. tim hieu them o duong link: https://www.javaguides.net/2024/04/authenticationentrypoint-in-spring-security.html
+                .authenticationEntryPoint(new JwtAuthenticationEntryPoint())
+        )
+
+        ;
 
         httpSecurity.csrf(AbstractHttpConfigurer::disable);
         return httpSecurity.build();
