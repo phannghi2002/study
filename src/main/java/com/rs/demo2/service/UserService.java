@@ -8,6 +8,7 @@ import com.rs.demo2.enums.Role;
 import com.rs.demo2.exception.AppException;
 import com.rs.demo2.exception.ErrorCode;
 import com.rs.demo2.mapper.UserMapper;
+import com.rs.demo2.repository.RoleRepository;
 import com.rs.demo2.repository.UserRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
 import java.util.HashSet;
 import java.util.List;
 
@@ -35,7 +37,9 @@ public class UserService {
 
     PasswordEncoder passwordEncoder;
 
-    public User createRequest(UserCreateRequest request) {
+    RoleRepository roleRepository;
+
+    public UserResponse createRequest(UserCreateRequest request) {
         if (userRepository.existsByUserName(request.getUserName())) {
 //            throw new RuntimeException("User already exist");
 
@@ -76,13 +80,15 @@ public class UserService {
 
         HashSet<String> roles = new HashSet<>();
         roles.add(Role.USER.name());
-        user.setRoles(roles);
+//        user.setRoles(roles);
 
-        return userRepository.save(user);
+        return userMapper.toUserResponse(userRepository.save(user));
 
     }
 
+    //dung voi permission thi dung hasAuthority boi vi ko co them ROLE
     @PreAuthorize("hasRole('ADMIN')")
+//    @PreAuthorize("hasAuthority('SCOPE_ROLE_ADMIN')")
     public List<UserResponse> getAllUser() {
         log.info("in method get users");
         return userMapper.toUserResponse(userRepository.findAll());
@@ -100,21 +106,47 @@ public class UserService {
 
     public UserResponse getInfoFromToken() {
         var authentication = SecurityContextHolder.getContext().getAuthentication();
-        User user = userRepository.findByUserName(authentication.getName()).orElseThrow(()-> new AppException(ErrorCode.USER_NOT_EXISTED));
+        User user = userRepository.findByUserName(authentication.getName()).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 
         return userMapper.toUserResponse(user);
     }
 
     public UserResponse updateUser(String userID, UserUpdateRequest request) {
+
         User user = userRepository.findById(userID).orElseThrow(() -> new RuntimeException("User not found"));
 
+        if (request.getPassword() != null && !request.getPassword().isEmpty()) {
+            user.setPassword(passwordEncoder.encode(request.getPassword()));
+
+        }
+
+        if (request.getRoles() != null && !request.getRoles().isEmpty()) {
+
+           List<com.rs.demo2.entity.Role> roles = roleRepository.findAllById(request.getRoles());
+            user.setRoles(new HashSet<>(roles));
+
+        }
         //use mapper
 //        user.setPassword(request.getPassword());
 //        user.setFirstName(request.getFirstName());
 //        user.setLastName(request.getLastName());
 //        user.setDob(request.getDob());
 
+        //chu y khi update user voi postman thi cho du cac truong trong UserUpdateRequest co thieu truong nao
+        //di chang nua neu ko du ca 2 truong la roles va password thi se loi, boi vi 2 truong do ta dung no
+        //o duoi, cai nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE
+        //co tac dung la vang truong nao thi truong do ko bi set ve null thoi chu 2 truong nay van phia bat buoc
+
         userMapper.updateUser(user, request);
+//        user.setPassword(passwordEncoder.encode(request.getPassword()));
+
+        //co the kiem tra neu co password thi ta update, or co roles truyen vao thi ta update cung duoc.
+
+
+//        var roles = roleRepository.findAllById(request.getRoles());
+//        user.setRoles(new HashSet<>(roles));
+
+
         return userMapper.toUserResponse(userRepository.save(user));
     }
 

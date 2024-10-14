@@ -60,7 +60,7 @@ public class GlobalExceptionHandler {
         } catch (IllegalArgumentException e){
 
         }
-        
+
         return ResponseEntity.status(errorCode.getStatusCode()).body(
                 ApiResponse.builder()
                         .code(errorCode.getCode())

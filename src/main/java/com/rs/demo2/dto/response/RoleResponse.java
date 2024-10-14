@@ -1,8 +1,10 @@
 package com.rs.demo2.dto.response;
+
+
+import com.rs.demo2.entity.Permission;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
-import java.time.LocalDate;
 import java.util.Set;
 
 @Data
@@ -10,12 +12,8 @@ import java.util.Set;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class UserResponse {
-    String id;
-    String userName;
-    String firstName;
-    String lastName;
-    LocalDate dob;
-
-    Set<RoleResponse> roles;
+public class RoleResponse {
+    String name;
+    String description;
+    Set<Permission> permissions;
 }

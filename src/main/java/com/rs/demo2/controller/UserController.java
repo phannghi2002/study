@@ -15,6 +15,7 @@ import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -25,18 +26,17 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@Slf4j
 public class UserController {
 
-    private static final Logger log = LoggerFactory.getLogger(UserController.class);
     UserService userService;
-    private final UserRepository userRepository;
+    UserRepository userRepository;
 
     @PostMapping("/users")
-    ApiResponse<User> createUser(@RequestBody @Valid UserCreateRequest request) {
-        ApiResponse<User> apiResponse = new ApiResponse<>();
-
-        apiResponse.setResult(userService.createRequest(request));
-        return apiResponse;
+    ApiResponse<UserResponse> createUser(@RequestBody @Valid UserCreateRequest request) {
+        return ApiResponse.<UserResponse>builder()
+                .result(userService.createRequest(request))
+                .build();
     }
 
     @GetMapping("/users")
@@ -44,9 +44,9 @@ public class UserController {
 
         var authentication = SecurityContextHolder.getContext().getAuthentication();
 
-        log.info("Username: {}", authentication.getName());
-        authentication.getAuthorities().forEach(grantedAuthority -> log.info(grantedAuthority.getAuthority()));
-
+        log.info("Username: {}", authentication.getName()); //getName tuong ung voi sub trong jwt.io
+        log.info("authentication contains: " + authentication);
+        authentication.getAuthorities().forEach(grantedAuthority -> log.info(grantedAuthority.getAuthority())); //getAuthorities giong scope trong jwt.io
 
         return ApiResponse.<List<UserResponse>>builder()
                 .result(userService.getAllUser())

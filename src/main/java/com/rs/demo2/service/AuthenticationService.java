@@ -37,6 +37,8 @@ import java.util.StringJoiner;
 public class AuthenticationService {
     UserRepository userRepository;
 
+    PasswordEncoder passwordEncoder;
+
     @NonFinal // khong inject no vao constructor
     @Value("${jwt.signerKey}")
     protected String SIGNER_KEY ;
@@ -70,7 +72,6 @@ public class AuthenticationService {
         var user = userRepository.findByUserName(request.getUserName())
                 .orElseThrow(()-> new AppException(ErrorCode.USER_NOT_EXISTED));
 
-        PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
         boolean authenticated =  passwordEncoder.matches(request.getPassword(),user.getPassword());
 
         if(!authenticated){
@@ -100,10 +101,19 @@ public class AuthenticationService {
     }
 
     private String buildScope(User user){
-        StringJoiner  stringJoiner =  new StringJoiner(" ");
-        if(!CollectionUtils.isEmpty(user.getRoles())){
-            user.getRoles().forEach(stringJoiner::add);
-        }
+        StringJoiner stringJoiner = new StringJoiner(" ");
+
+        if (!CollectionUtils.isEmpty(user.getRoles()))
+            user.getRoles().forEach(role -> {
+                stringJoiner.add("ROLE_" + role.getName());
+              //  stringJoiner.add(role.getName());
+
+                //them permission vao trong thang SCOPE cua jwt
+                if (!CollectionUtils.isEmpty(role.getPermissions()))
+                    role.getPermissions()
+                            .forEach(permission -> stringJoiner.add(permission.getName()));
+            });
+
         return stringJoiner.toString();
     }
 }

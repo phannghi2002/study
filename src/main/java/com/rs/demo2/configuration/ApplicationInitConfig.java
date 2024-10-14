@@ -16,9 +16,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import java.util.HashSet;
 
 @Configuration
-@RequiredArgsConstructor
+@RequiredArgsConstructor // dung de khoi tao cac constructor co tham so la final, tiem su phu thuoc dung no
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-@Slf4j
+@Slf4j //dung de log
 public class ApplicationInitConfig {
 
     PasswordEncoder passwordEncoder;
@@ -33,7 +33,7 @@ public class ApplicationInitConfig {
                 User user = User.builder()
                         .userName("admin")
                         .password(passwordEncoder.encode("admin"))
-                        .roles(roles)
+                        //.roles(roles)
                         .build();
 
                 userRepository.save(user);
