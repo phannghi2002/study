@@ -52,6 +52,13 @@ public class AuthenticationService {
 
         String jit = signToken.getJWTClaimsSet().getJWTID();
 
+        //giai thich them tai sao o day ta lai dung getExpirationTime (thoi diem token het han) chu khong phai la thoi diem ta vo hieu hoa no.
+        //muc dich chinh cua no la ta dung de clean up cac du lieu trong bang, dung mysql schedule de don dep no, nghia la sau mot khong thoi gian
+        //co dinh, chang han ta se thuc hien cau lenh mysql de don dep du lieu, tranh gay ra lang phi bo nho. Tai sao lai la thoi diem token het han
+        //boi gia su neu thoi dung thoi gian la thoi gian logout la 13h chang han, gia su sau 14h thi ta thuc hien don dep data trong CSDL
+        //ma token ta lai co hieu luc la 3h dong ho, gia su nhu ta dang nhap luc 12h thi luc nay vao thoi diem 14h ta thuc hien xoa data
+        //nghia la token nay chua het han ma da bi xoa roi, nghia la sau 14h thi ta co the dung token nay de dang nhap cho den het 15h.
+        //day la tai sao ta phai lay thoi gian het han de don dep.
         Date expiryTime = signToken.getJWTClaimsSet().getExpirationTime();
 
         InvalidatedToken invalidatedToken = InvalidatedToken.builder()
