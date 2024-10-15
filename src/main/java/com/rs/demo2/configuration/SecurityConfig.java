@@ -1,6 +1,7 @@
 package com.rs.demo2.configuration;
 
 import com.rs.demo2.enums.Role;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -9,17 +10,13 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
-import org.springframework.security.core.parameters.P;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
-import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
 
-import javax.crypto.spec.SecretKeySpec;
+
 
 @Configuration
 @EnableWebSecurity
@@ -27,10 +24,13 @@ import javax.crypto.spec.SecretKeySpec;
 public class SecurityConfig {
 
     private final String[] PUBLIC_ENDPOINTS = {
-            "users", "auth/token", "auth/introspect"
+            "users", "auth/token", "auth/introspect", "auth/logout"
     };
     @Value("${jwt.signerKey}")
     private String signerKey;
+
+    @Autowired
+    private CustomJwtDecoder customJwtDecoder;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception {
@@ -47,9 +47,14 @@ public class SecurityConfig {
                 .anyRequest().authenticated());
 
         //providerManager, khi dung jwtConfigurer.decoder thi Oauth2 no tu dong lay token trong Authorization header ma ta khong can phai truyen
-        //token vao
-        httpSecurity.oauth2ResourceServer(oath2 -> oath2.jwt(jwtConfigurer -> jwtConfigurer.decoder(jwtDecoder())
+        //token vao va thuc te no se co nhiem vu la kiem tra ma token dung chua, kiem tra phan quyen, kiem tra toke con han hay khong,
+        // neu tat ca deu dung thi no se
+        //duoc luu vao SecurityContext, neu ta dung jwtDecoder thi chi co the nhung neu ta dung customJwtDecoder thi no lai them logic
+        //ben trong do la kiem tra token 1 lan nua va kiem tra xem token nay co bi logout hay khong (vo hieu hoa token) mac du co
+        //the token van con thoi han su dung
+//        httpSecurity.oauth2ResourceServer(oath2 -> oath2.jwt(jwtConfigurer -> jwtConfigurer.decoder(jwtDecoder())
 
+        httpSecurity.oauth2ResourceServer(oath2 -> oath2.jwt(jwtConfigurer -> jwtConfigurer.decoder(customJwtDecoder)
                 //ham nay chuyen doi mot so thu trong jwt dua tren cai ta dinh nghia, neu khong dinh nghia ham nay thi khi
                 //config phan quyen ta phai bat buoc them SCOPE vao: @PreAuthorize("hasAuthority('SCOPE_ROLE_ADMIN')") neu khong co no thi se
                 //ko truy cap duoc, SCOPE_ la default, neu dung ham duoi nay thi ta thay SCOPE_ bang chuoi rong ""
@@ -79,16 +84,18 @@ public class SecurityConfig {
         return jwtAuthenticationConverter;
     }
 
-    @Bean
-        //ham nay no se tu giai ma jwt thanh header, payload, signature  -> sau do no se tu dong xac thuc roi tra ve trong SecurityContext neu
-        //xac thuc thanh cong, con sai tra ve loi 401 Unauthorized
-    JwtDecoder jwtDecoder() {
-        SecretKeySpec secretKeySpec = new SecretKeySpec(signerKey.getBytes(), "HS512");
-        return NimbusJwtDecoder
-                .withSecretKey(secretKeySpec)
-                .macAlgorithm(MacAlgorithm.HS512)
-                .build();
-    }
+//    @Bean
+//        //ham nay no se tu giai ma jwt thanh header, payload, signature  -> sau do no se tu dong xac thuc roi tra ve trong SecurityContext neu
+//        //xac thuc thanh cong, con sai tra ve loi 401 Unauthorized, ham nay no van kiem tra thoi gian co con het han hay khong, tuy nhien
+    //ta phai custom 1 ham rieng boi vi neu ta logout thi co nghia la token nay van co the con han nhung lai khong duoc phep truy cap boi
+    //vi co kha nang bi hacker lay mat, nen ta phai tao 1 ham de kiem tra xem token moi nay co bi logout hay chua
+//    JwtDecoder jwtDecoder() {
+//        SecretKeySpec secretKeySpec = new SecretKeySpec(signerKey.getBytes(), "HS512");
+//        return NimbusJwtDecoder
+//                .withSecretKey(secretKeySpec)
+//                .macAlgorithm(MacAlgorithm.HS512)
+//                .build();
+//    }
 
     @Bean
     PasswordEncoder passwordEncoder() {

@@ -7,11 +7,14 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import com.rs.demo2.dto.request.AuthenticationRequest;
 import com.rs.demo2.dto.request.IntrospectRequest;
+import com.rs.demo2.dto.request.LogoutRequest;
 import com.rs.demo2.dto.response.AuthenticationResponse;
 import com.rs.demo2.dto.response.IntrospectResponse;
+import com.rs.demo2.entity.InvalidatedToken;
 import com.rs.demo2.entity.User;
 import com.rs.demo2.exception.AppException;
 import com.rs.demo2.exception.ErrorCode;
+import com.rs.demo2.repository.InvalidatedTokenRepository;
 import com.rs.demo2.repository.UserRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +33,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.Date;
 import java.util.StringJoiner;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -37,13 +41,48 @@ import java.util.StringJoiner;
 public class AuthenticationService {
     UserRepository userRepository;
 
-    PasswordEncoder passwordEncoder;
+    InvalidatedTokenRepository invalidatedTokenRepository;
 
     @NonFinal // khong inject no vao constructor
     @Value("${jwt.signerKey}")
-    protected String SIGNER_KEY ;
+    protected String SIGNER_KEY;
 
-    String generateToken(User user){
+    public void logout(LogoutRequest request) throws ParseException, JOSEException {
+        var signToken = verifyToken(request.getToken());
+
+        String jit = signToken.getJWTClaimsSet().getJWTID();
+
+        Date expiryTime = signToken.getJWTClaimsSet().getExpirationTime();
+
+        InvalidatedToken invalidatedToken = InvalidatedToken.builder()
+                .id(jit)
+                .expiryTime(expiryTime)
+                .build();
+        invalidatedTokenRepository.save(invalidatedToken);
+    }
+
+    //ham nay lay thong tin tu token va check ca ma token va thoi gian
+    SignedJWT verifyToken(String token) throws JOSEException, ParseException {
+        JWSVerifier verifier = new MACVerifier(SIGNER_KEY.getBytes());
+
+        SignedJWT signedJWT = SignedJWT.parse(token); // cau lenh nay dung de chuyen doi token thanh dang SignedJWT
+
+        Date expirationTime = signedJWT.getJWTClaimsSet().getExpirationTime();
+        var verified = signedJWT.verify(verifier);
+
+        if (!verified || !expirationTime.after(new Date())) throw new AppException(ErrorCode.UNAUTHENTICATED);
+        //bieu thuc tren co the chuyen thanh : nay la dung De Morgan's Law: !(A && B) into !A || !B
+        //don gian giai thich nhu sau: A&&B nghia la A va B deu dung thi no moi thuc hien, phu dinh cua no
+        //nghia la hoac A sai, hoac B sai thi ca 2 cung deu duoc thuc hien
+        // if (!(verified && expirationTime.after(new Date()))) throw new AppException(ErrorCode.UNAUTHENTICATED);
+
+        if (invalidatedTokenRepository.existsById(signedJWT.getJWTClaimsSet().getJWTID()))
+            throw new AppException(ErrorCode.UNAUTHENTICATED);
+
+        return signedJWT;
+    }
+
+    String generateToken(User user) {
         JWSHeader header = new JWSHeader(JWSAlgorithm.HS512);
 
         JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder()
@@ -53,6 +92,7 @@ public class AuthenticationService {
                 .expirationTime(new Date(
                         Instant.now().plus(1, ChronoUnit.HOURS).toEpochMilli()
                 ))
+                .jwtID(UUID.randomUUID().toString())
                 .claim("scope", buildScope(user))
                 .build();
 
@@ -66,15 +106,17 @@ public class AuthenticationService {
         } catch (JOSEException e) {
             throw new RuntimeException(e);
         }
-        }
+    }
 
-    public AuthenticationResponse authenticate(AuthenticationRequest request){
+    public AuthenticationResponse authenticate(AuthenticationRequest request) {
         var user = userRepository.findByUserName(request.getUserName())
-                .orElseThrow(()-> new AppException(ErrorCode.USER_NOT_EXISTED));
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+        //mac du dua ta da khai bao passwordEncoder la @Bean va khi can dung ta chi can @Autowire ma dung thoi, nhung neu dua ra ngoai ta
+        //se gap loi boi vi cac bean no require lan nhau , xem comment tren youtube: Cái này do 2 bean require lẫn nhau nên bị, em cần tránh việc đó.
+        PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
+        boolean authenticated = passwordEncoder.matches(request.getPassword(), user.getPassword());
 
-        boolean authenticated =  passwordEncoder.matches(request.getPassword(),user.getPassword());
-
-        if(!authenticated){
+        if (!authenticated) {
             throw new AppException(ErrorCode.UNAUTHENTICATED);
         }
         var token = generateToken(user);
@@ -87,26 +129,26 @@ public class AuthenticationService {
 
     public IntrospectResponse introspect(IntrospectRequest request) throws JOSEException, ParseException {
         var token = request.getToken();
+        boolean isValid = true;
 
-        JWSVerifier verifier = new MACVerifier(SIGNER_KEY.getBytes());
-
-        SignedJWT signedJWT = SignedJWT.parse(token); // cau lenh nay dung de chuyen doi token thanh dang SignedJWT
-
-        Date expirationTime = signedJWT.getJWTClaimsSet().getExpirationTime();
-        var verified = signedJWT.verify(verifier);
-
+        try {
+            verifyToken(token);
+        } catch (AppException e) {
+            isValid = false;
+        }
         return IntrospectResponse.builder()
-                .valid(verified && expirationTime.after(new Date()))
+                .valid(isValid)
                 .build();
+
     }
 
-    private String buildScope(User user){
+    private String buildScope(User user) {
         StringJoiner stringJoiner = new StringJoiner(" ");
 
         if (!CollectionUtils.isEmpty(user.getRoles()))
             user.getRoles().forEach(role -> {
                 stringJoiner.add("ROLE_" + role.getName());
-              //  stringJoiner.add(role.getName());
+                //  stringJoiner.add(role.getName());
 
                 //them permission vao trong thang SCOPE cua jwt
                 if (!CollectionUtils.isEmpty(role.getPermissions()))
