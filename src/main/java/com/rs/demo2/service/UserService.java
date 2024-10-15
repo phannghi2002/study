@@ -115,14 +115,16 @@ public class UserService {
 
         User user = userRepository.findById(userID).orElseThrow(() -> new RuntimeException("User not found"));
 
+        userMapper.updateUser(user, request);
         if (request.getPassword() != null && !request.getPassword().isEmpty()) {
             user.setPassword(passwordEncoder.encode(request.getPassword()));
 
+            log.info("user" + user);
         }
 
         if (request.getRoles() != null && !request.getRoles().isEmpty()) {
 
-           List<com.rs.demo2.entity.Role> roles = roleRepository.findAllById(request.getRoles());
+            List<com.rs.demo2.entity.Role> roles = roleRepository.findAllById(request.getRoles());
             user.setRoles(new HashSet<>(roles));
 
         }
@@ -137,7 +139,7 @@ public class UserService {
         //o duoi, cai nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE
         //co tac dung la vang truong nao thi truong do ko bi set ve null thoi chu 2 truong nay van phia bat buoc
 
-        userMapper.updateUser(user, request);
+
 //        user.setPassword(passwordEncoder.encode(request.getPassword()));
 
         //co the kiem tra neu co password thi ta update, or co roles truyen vao thi ta update cung duoc.
