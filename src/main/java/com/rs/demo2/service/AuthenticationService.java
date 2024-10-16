@@ -8,6 +8,7 @@ import com.nimbusds.jwt.SignedJWT;
 import com.rs.demo2.dto.request.AuthenticationRequest;
 import com.rs.demo2.dto.request.IntrospectRequest;
 import com.rs.demo2.dto.request.LogoutRequest;
+import com.rs.demo2.dto.request.RefreshRequest;
 import com.rs.demo2.dto.response.AuthenticationResponse;
 import com.rs.demo2.dto.response.IntrospectResponse;
 import com.rs.demo2.entity.InvalidatedToken;
@@ -68,7 +69,7 @@ public class AuthenticationService {
         invalidatedTokenRepository.save(invalidatedToken);
     }
 
-    //ham nay lay thong tin tu token va check ca ma token va thoi gian
+    //ham nay lay thong tin tu token va check ca ma token va thoi gian, check ca token da bi logout chua
     SignedJWT verifyToken(String token) throws JOSEException, ParseException {
         JWSVerifier verifier = new MACVerifier(SIGNER_KEY.getBytes());
 
@@ -147,6 +148,39 @@ public class AuthenticationService {
                 .valid(isValid)
                 .build();
 
+    }
+
+    public AuthenticationResponse refreshToken (RefreshRequest request) throws ParseException, JOSEException {
+        //RefreshToken co nghia la khi token sap het thoi gian su dung thi ta se tao ra mot token moi de giup
+        //user co the tiep tuc dang nhap tiep ma khong can phai login, tranh lam anh huong trai nghiem nguoi dung
+
+        //thu tu thuc hien cua no nhu sau: 1.kiem tra token da dung va con han su dung ko, co bi logout chua
+        //2.Tiep den la logout cai token cu nay
+        //3.Tim kiem user dua tren cai userName da luu trong token duoi dang sub-> cai nay hiem khi xay ra
+        // boi vi thuc chat buoc 1 da kiem tra roi, nhung co the xay ra khi mang loi, khi do ko the check data trong
+        // databse duoc
+        //4. tao ra mot cai token moi
+        var signedJWT = verifyToken(request.getToken());
+
+         String jit = signedJWT.getJWTClaimsSet().getJWTID();
+         Date expiryTime  =  signedJWT.getJWTClaimsSet().getExpirationTime();
+
+        InvalidatedToken invalidatedToken = InvalidatedToken.builder()
+                .id(jit)
+                .expiryTime(expiryTime)
+                .build();
+        invalidatedTokenRepository.save(invalidatedToken);
+
+        String username = signedJWT.getJWTClaimsSet().getSubject();
+
+        User user = userRepository.findByUserName(username).orElseThrow(()-> new AppException(ErrorCode.UNAUTHENTICATED));
+
+        String token = generateToken(user);
+
+        return AuthenticationResponse.builder()
+                .token(token)
+                .authenticated(true)
+                .build();
     }
 
     private String buildScope(User user) {
