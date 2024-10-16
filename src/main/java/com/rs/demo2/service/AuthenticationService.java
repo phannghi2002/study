@@ -22,6 +22,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
 import lombok.experimental.NonFinal;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -36,6 +37,7 @@ import java.util.Date;
 import java.util.StringJoiner;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -48,34 +50,51 @@ public class AuthenticationService {
     @Value("${jwt.signerKey}")
     protected String SIGNER_KEY;
 
+    @NonFinal // khong inject no vao constructor
+    @Value("${jwt.valid-duration}")
+    protected long VALID_DURATION;
+
+    @NonFinal // khong inject no vao constructor
+    @Value("${jwt.refreshable-duration}")
+    protected long REFRESHABLE_DURATION;
+
     public void logout(LogoutRequest request) throws ParseException, JOSEException {
-        var signToken = verifyToken(request.getToken());
+        try {
+            var signToken = verifyToken(request.getToken(), false);
 
-        String jit = signToken.getJWTClaimsSet().getJWTID();
+            String jit = signToken.getJWTClaimsSet().getJWTID();
 
-        //giai thich them tai sao o day ta lai dung getExpirationTime (thoi diem token het han) chu khong phai la thoi diem ta vo hieu hoa no.
-        //muc dich chinh cua no la ta dung de clean up cac du lieu trong bang, dung mysql schedule de don dep no, nghia la sau mot khong thoi gian
-        //co dinh, chang han ta se thuc hien cau lenh mysql de don dep du lieu, tranh gay ra lang phi bo nho. Tai sao lai la thoi diem token het han
-        //boi gia su neu thoi dung thoi gian la thoi gian logout la 13h chang han, gia su sau 14h thi ta thuc hien don dep data trong CSDL
-        //ma token ta lai co hieu luc la 3h dong ho, gia su nhu ta dang nhap luc 12h thi luc nay vao thoi diem 14h ta thuc hien xoa data
-        //nghia la token nay chua het han ma da bi xoa roi, nghia la sau 14h thi ta co the dung token nay de dang nhap cho den het 15h.
-        //day la tai sao ta phai lay thoi gian het han de don dep.
-        Date expiryTime = signToken.getJWTClaimsSet().getExpirationTime();
+            //giai thich them tai sao o day ta lai dung getExpirationTime (thoi diem token het han) chu khong phai la thoi diem ta vo hieu hoa no.
+            //muc dich chinh cua no la ta dung de clean up cac du lieu trong bang, dung mysql schedule de don dep no, nghia la sau mot khong thoi gian
+            //co dinh, chang han ta se thuc hien cau lenh mysql de don dep du lieu, tranh gay ra lang phi bo nho. Tai sao lai la thoi diem token het han
+            //boi gia su neu thoi dung thoi gian la thoi gian logout la 13h chang han, gia su sau 14h thi ta thuc hien don dep data trong CSDL
+            //ma token ta lai co hieu luc la 3h dong ho, gia su nhu ta dang nhap luc 12h thi luc nay vao thoi diem 14h ta thuc hien xoa data
+            //nghia la token nay chua het han ma da bi xoa roi, nghia la sau 14h thi ta co the dung token nay de dang nhap cho den het 15h.
+            //day la tai sao ta phai lay thoi gian het han de don dep.
+            Date expiryTime = signToken.getJWTClaimsSet().getExpirationTime();
 
-        InvalidatedToken invalidatedToken = InvalidatedToken.builder()
-                .id(jit)
-                .expiryTime(expiryTime)
-                .build();
-        invalidatedTokenRepository.save(invalidatedToken);
+            InvalidatedToken invalidatedToken = InvalidatedToken.builder()
+                    .id(jit)
+                    .expiryTime(expiryTime)
+                    .build();
+            invalidatedTokenRepository.save(invalidatedToken);
+        } catch (AppException e){
+            //khoi catch nay duoc thuc thi khi cau lenh try no nem ra ngoai le, nghia la neu verify la false thi cau lenh duoi day duoc thuc thi,
+            //noi chung la tat ca truong hop nem ngoai le trong cau lenh try nem ra throw thi deu cac cau lenh duoi day deu duoc thuc thi het.
+            log.info("Token already expired");
+        }
+
     }
 
     //ham nay lay thong tin tu token va check ca ma token va thoi gian, check ca token da bi logout chua
-    SignedJWT verifyToken(String token) throws JOSEException, ParseException {
+    SignedJWT verifyToken(String token, boolean isRefresh) throws JOSEException, ParseException {
         JWSVerifier verifier = new MACVerifier(SIGNER_KEY.getBytes());
 
         SignedJWT signedJWT = SignedJWT.parse(token); // cau lenh nay dung de chuyen doi token thanh dang SignedJWT
 
-        Date expirationTime = signedJWT.getJWTClaimsSet().getExpirationTime();
+        Date expirationTime = isRefresh
+                ? Date.from(signedJWT.getJWTClaimsSet().getIssueTime().toInstant().plus(REFRESHABLE_DURATION, ChronoUnit.SECONDS))
+        : signedJWT.getJWTClaimsSet().getExpirationTime();
         var verified = signedJWT.verify(verifier);
 
         if (!verified || !expirationTime.after(new Date())) throw new AppException(ErrorCode.UNAUTHENTICATED);
@@ -98,7 +117,7 @@ public class AuthenticationService {
                 .issuer("demo2")
                 .issueTime(new Date())
                 .expirationTime(new Date(
-                        Instant.now().plus(1, ChronoUnit.HOURS).toEpochMilli()
+                        Instant.now().plus(VALID_DURATION, ChronoUnit.SECONDS).toEpochMilli()
                 ))
                 .jwtID(UUID.randomUUID().toString())
                 .claim("scope", buildScope(user))
@@ -140,7 +159,7 @@ public class AuthenticationService {
         boolean isValid = true;
 
         try {
-            verifyToken(token);
+            verifyToken(token, false);
         } catch (AppException e) {
             isValid = false;
         }
@@ -150,6 +169,8 @@ public class AuthenticationService {
 
     }
 
+    //chu thich them tai sao cai refreshToken chi duoc tao 1 token moi voi 1 token ban dau: vi khi refresh token moi thi ta
+    //da logout token do nen ta khong the su dung lai no de tao ra token moi lan nua
     public AuthenticationResponse refreshToken (RefreshRequest request) throws ParseException, JOSEException {
         //RefreshToken co nghia la khi token sap het thoi gian su dung thi ta se tao ra mot token moi de giup
         //user co the tiep tuc dang nhap tiep ma khong can phai login, tranh lam anh huong trai nghiem nguoi dung
@@ -160,7 +181,7 @@ public class AuthenticationService {
         // boi vi thuc chat buoc 1 da kiem tra roi, nhung co the xay ra khi mang loi, khi do ko the check data trong
         // databse duoc
         //4. tao ra mot cai token moi
-        var signedJWT = verifyToken(request.getToken());
+        var signedJWT = verifyToken(request.getToken(), true);
 
          String jit = signedJWT.getJWTClaimsSet().getJWTID();
          Date expiryTime  =  signedJWT.getJWTClaimsSet().getExpirationTime();

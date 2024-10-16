@@ -27,3 +27,7 @@ spring:
 
 jwt:
   signerKey: "+L8ksVUN16GK7hw/14qZV1RjdfZrSzf6UFCb/byhPpz7m9ls7SFE+zd0CGhwAx3f"
+  valid-duration: 3600 # in seconds //thoi gian token het hieu luc
+  refreshable-duration: 36000 # in seconds //trong khoang thoi gian nay thi van co the refresh duoc token moi nhung chi dung no de refresh ma
+  # khong the truy cap vao cac quyen bat xac thuc, boi vi token cu da het han, refresh no la 1 permitAll nen ta ko can phai xac thuc
+  #nhung ta van cai dat thoi gian de no ko the xac thuc duoc nua
