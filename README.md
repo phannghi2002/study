@@ -1,2 +1,1 @@
-1.logout with JWT token, use for when hacker attack get token and token this not yet expired
-2.custom with CustomJwtDecoder use add logic check jwt have logout isn't it ?
+refreshToken align Oauth2: meaning : create for duration time , duration time usually large expire time of token, if token expire time and small duration time then can request create token new, token old not used (logout token old)
