@@ -39,7 +39,7 @@ public class UserService {
 
     RoleRepository roleRepository;
 
-    public UserResponse createRequest(UserCreateRequest request) {
+    public UserResponse createUser(UserCreateRequest request) {
         if (userRepository.existsByUserName(request.getUserName())) {
 //            throw new RuntimeException("User already exist");
 
