@@ -15,6 +15,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MockMvcResultMatchersDsl;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
@@ -28,6 +29,9 @@ import static org.mockito.ArgumentMatchers.any;
 @Slf4j
 @SpringBootTest
 @AutoConfigureMockMvc // co the tao duoc mockMVC -> dung cho layer Controller
+@TestPropertySource("/test.properties") //neu khong khai bao no thi no se lay thong tin tu application.yaml
+//nhung khai bao nay de no override nhung thong tin tren test.properties, nghia la cac thong tin nao co ben trong
+//application.yaml va tren test.properties cung co thi no se lay thong tin tu test.properties
 public class UserControllerTest {
 
     @Autowired
