@@ -80,13 +80,12 @@
             <artifactId>spring-security-crypto</artifactId>
         </dependency>
 
-<!--        &lt;!&ndash; https://mvnrepository.com/artifact/com.nimbusds/nimbus-jose-jwt &ndash;&gt;-->
-<!--        <dependency>-->
-<!--            <groupId>com.nimbusds</groupId>-->
-<!--            <artifactId>nimbus-jose-jwt</artifactId>-->
-<!--            <version>9.41.2</version>-->
-<!--        </dependency>-->
-
+        <!--        &lt;!&ndash; https://mvnrepository.com/artifact/com.nimbusds/nimbus-jose-jwt &ndash;&gt;-->
+        <!--        <dependency>-->
+        <!--            <groupId>com.nimbusds</groupId>-->
+        <!--            <artifactId>nimbus-jose-jwt</artifactId>-->
+        <!--            <version>9.41.2</version>-->
+        <!--        </dependency>-->
 
 
         <!-- https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-oauth2-resource-server -->
@@ -108,6 +107,25 @@
             <version>2.3.232</version>
             <scope>test</scope>
         </dependency>
+        <!-- https://mvnrepository.com/artifact/org.springframework.security/spring-security-test -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
+            <version>6.3.3</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>mysql</artifactId>
+            <scope>test</scope>
+        </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -118,13 +136,51 @@
 
     </dependencies>
 
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers-bom</artifactId>
+                <version>1.19.7</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <build>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
-
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.12</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <excludes>
+                        <exclude>com/rs/demo2/configuration/**</exclude>
+                        <exclude>com/rs/demo2/dto/**</exclude>
+                        <exclude>com/rs/demo2/entity/**</exclude>
+                        <exclude>com/rs/demo2/mapper/**</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 

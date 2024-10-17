@@ -12,9 +12,11 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.TestPropertySource;
 
 import java.time.LocalDate;
+import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -111,6 +113,33 @@ public class UserServiceTest {
        Assertions.assertThat(exception.getErrorCode().getCode()).isEqualTo(1000);
         Assertions.assertThat(exception.getErrorCode().getMessage()).isEqualTo("User already existed");
 
+
+    }
+
+    @Test
+    @WithMockUser(username = "join") //giup ta pass security, thay vi dung ma token de xac thuc (dung username trong
+        // JWT la gia tri duy nhat ta luu vao sub  )
+    void getInfoFromToken_valid_success(){
+        Mockito.when(userRepository.findByUserName(anyString())).thenReturn(Optional.of(user));
+
+        UserResponse response = userService.getInfoFromToken();
+
+        Assertions.assertThat(response.getId()).isEqualTo("cdfadfa84");
+        Assertions.assertThat(response.getUserName()).isEqualTo("join");
+        Assertions.assertThat(response.getFirstName()).isEqualTo("last");
+        Assertions.assertThat(response.getLastName()).isEqualTo("jackson");
+        Assertions.assertThat(response.getDob()).isEqualTo("1990-01-01");
+    }
+
+    @Test
+    @WithMockUser(username = "join")
+    void getInfoFromToken_userNotExist_fail(){
+        Mockito.when(userRepository.findByUserName(anyString())).thenReturn(Optional.empty());
+
+        var exception = assertThrows(AppException.class, ()-> userService.getInfoFromToken());
+
+        Assertions.assertThat(exception.getErrorCode().getCode()).isEqualTo(1005);
+        Assertions.assertThat(exception.getErrorCode().getMessage()).isEqualTo("User not existed");
 
     }
 }
