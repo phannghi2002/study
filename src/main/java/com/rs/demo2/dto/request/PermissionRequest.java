@@ -9,7 +9,6 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @NoArgsConstructor
 public class PermissionRequest {
-    String name;
-    String description;
-
+	String name;
+	String description;
 }

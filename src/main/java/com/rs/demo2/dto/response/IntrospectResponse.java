@@ -1,6 +1,5 @@
 package com.rs.demo2.dto.response;
 
-
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -10,5 +9,5 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @NoArgsConstructor
 public class IntrospectResponse {
-    boolean valid;
+	boolean valid;
 }

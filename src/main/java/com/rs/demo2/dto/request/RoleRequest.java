@@ -1,9 +1,9 @@
 package com.rs.demo2.dto.request;
 
+import java.util.Set;
+
 import lombok.*;
 import lombok.experimental.FieldDefaults;
-
-import java.util.Set;
 
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)
@@ -11,8 +11,8 @@ import java.util.Set;
 @AllArgsConstructor
 @NoArgsConstructor
 public class RoleRequest {
-    String name;
-    String description;
+	String name;
+	String description;
 
-    Set<String> permissions;
+	Set<String> permissions;
 }

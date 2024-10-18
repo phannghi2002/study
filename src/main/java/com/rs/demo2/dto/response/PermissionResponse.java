@@ -1,6 +1,5 @@
 package com.rs.demo2.dto.response;
 
-
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -10,6 +9,6 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @NoArgsConstructor
 public class PermissionResponse {
-    String name;
-    String description;
+	String name;
+	String description;
 }

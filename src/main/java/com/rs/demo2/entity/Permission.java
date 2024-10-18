@@ -1,11 +1,9 @@
 package com.rs.demo2.entity;
 
 import jakarta.persistence.*;
+
 import lombok.*;
 import lombok.experimental.FieldDefaults;
-
-
-import java.util.Set;
 
 @Getter
 @Setter
@@ -15,8 +13,8 @@ import java.util.Set;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class Permission {
-    @Id
-    String name;
-    String description;
+	@Id
+	String name;
 
+	String description;
 }

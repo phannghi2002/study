@@ -1,12 +1,12 @@
 package com.rs.demo2.entity;
 
+import java.time.LocalDate;
+import java.util.Set;
+
 import jakarta.persistence.*;
+
 import lombok.*;
 import lombok.experimental.FieldDefaults;
-
-import java.time.LocalDate;
-import java.util.List;
-import java.util.Set;
 
 @Data
 @Entity
@@ -15,15 +15,16 @@ import java.util.Set;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class User {
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    String id;
-    String userName;
-    String password;
-    String firstName;
-    String lastName;
-    LocalDate dob;
+	@Id
+	@GeneratedValue(strategy = GenerationType.UUID)
+	String id;
 
-   @ManyToMany
-   Set<Role> roles;
+	String userName;
+	String password;
+	String firstName;
+	String lastName;
+	LocalDate dob;
+
+	@ManyToMany
+	Set<Role> roles;
 }
