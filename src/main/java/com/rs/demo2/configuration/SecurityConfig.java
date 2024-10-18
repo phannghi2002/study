@@ -1,5 +1,6 @@
 package com.rs.demo2.configuration;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,6 +14,15 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.filter.CorsFilter;
+
+import java.util.Arrays;
+import java.util.Collections;
+
+import static org.springframework.security.config.Customizer.withDefaults;
 
 @Configuration
 @EnableWebSecurity
@@ -73,8 +83,36 @@ public class SecurityConfig {
 				.authenticationEntryPoint(new JwtAuthenticationEntryPoint()));
 
 		httpSecurity.csrf(AbstractHttpConfigurer::disable);
+        httpSecurity.cors(cors -> cors.configurationSource(corsConfigurationSource()));
 		return httpSecurity.build();
 	}
+
+    private CorsConfigurationSource corsConfigurationSource() {
+        return new CorsConfigurationSource() {
+            @Override
+            public CorsConfiguration getCorsConfiguration(HttpServletRequest request) {
+                CorsConfiguration cfg = new CorsConfiguration();
+                //duong dan nay duoc phep gui yeu cau den server, la duong dan ben frontend
+                cfg.setAllowedOrigins(Arrays.asList(
+                        "http://localhost:3000/"
+                ));
+                //cho phep gui yeu cau bang cac phuong thuc nhu get, post, delete, put, ...
+                cfg.setAllowedMethods(Collections.singletonList("*"));
+                //cho phep xac thuc thong tin cookies, authorization headers
+                cfg.setAllowCredentials(true);
+                //cho phep Authorization va Origin ...
+                cfg.setAllowedHeaders(Collections.singletonList("*"));
+                //cho phep Authorization thi an toan va duoc phep hien thi tren trinh duyet
+                cfg.setExposedHeaders(Arrays.asList(
+                        "Authorization"
+                ));
+                //cho phep thoi gian yeu cau duoc luu vao bo nho dem: 3600s -> 1h
+                cfg.setMaxAge(3600L);
+
+                return cfg;
+            }
+        };
+    }
 
 	// chuyen doi thay vi dung mac dinh la SCOPE_ADMIN thi doi thanh ROLE_ADMIN
 	@Bean
@@ -111,3 +149,8 @@ public class SecurityConfig {
 		return new BCryptPasswordEncoder(10);
 	}
 }
+
+
+
+
+
