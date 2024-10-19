@@ -2,6 +2,7 @@ package com.rs.demo2.configuration;
 
 import java.util.HashSet;
 
+import com.rs.demo2.constant.PredefinedRole;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -9,7 +10,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.rs.demo2.entity.User;
-import com.rs.demo2.enums.Role;
 import com.rs.demo2.repository.UserRepository;
 
 import lombok.AccessLevel;
@@ -43,7 +43,7 @@ public class ApplicationInitConfig {
 		return args -> {
 			if (userRepository.findByUserName("admin").isEmpty()) {
 				var roles = new HashSet<String>();
-				roles.add(Role.ADMIN.name());
+				roles.add(PredefinedRole.ADMIN_ROLE);
 
 				User user = User.builder()
 						.userName("admin")

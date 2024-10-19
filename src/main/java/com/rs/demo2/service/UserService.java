@@ -2,7 +2,11 @@ package com.rs.demo2.service;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
+import com.rs.demo2.constant.PredefinedRole;
+import com.rs.demo2.entity.Role;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -13,7 +17,6 @@ import com.rs.demo2.dto.request.UserCreateRequest;
 import com.rs.demo2.dto.request.UserUpdateRequest;
 import com.rs.demo2.dto.response.UserResponse;
 import com.rs.demo2.entity.User;
-import com.rs.demo2.enums.Role;
 import com.rs.demo2.exception.AppException;
 import com.rs.demo2.exception.ErrorCode;
 import com.rs.demo2.mapper.UserMapper;
@@ -31,128 +34,134 @@ import lombok.extern.slf4j.Slf4j;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 // makeFinal nghia la neu khong dinh nghia gi het thi no tu dong ding nghia la final
 public class UserService {
-	UserRepository userRepository;
+    UserRepository userRepository;
 
-	UserMapper userMapper;
+    UserMapper userMapper;
 
-	PasswordEncoder passwordEncoder;
+    PasswordEncoder passwordEncoder;
 
-	RoleRepository roleRepository;
+    RoleRepository roleRepository;
 
-	public UserResponse createUser(UserCreateRequest request) {
-		if (userRepository.existsByUserName(request.getUserName())) {
-			//            throw new RuntimeException("User already exist");
+    public UserResponse createUser(UserCreateRequest request) {
+        //bo userRepository.existsByUserName(request.getUserName()) vi trong CSDL da dung no la unique roi
+//		if (userRepository.existsByUserName(request.getUserName())) {
+//			//            throw new RuntimeException("User already exist");
+//
+//			// khi ta dinh nghia 1 exception thi se co 2 loai:1 loai la do nguoi dung tu dinh nghia va
+//			// loai con lai la duoc built tu exception: loai nay lai duoc chia ra lam 2 loai nho hon la
+//			// loai check exception (nhu Exception, IOException, SQLException ...) va loai con lai la
+//			// uncheck exception (nhu RuntimeException ...). Voi loai check exception khi nem loi throw
+//			// thi ben ngoai ta phai dung den tu khoa throws con loai con lai chi nem loi throw la du.
+//			// Doi voi excep do nguoi dung dinh nghia thi phu thuoc vao khi ta extends Exception thuoc loai
+//			// nao, ung voi loai nao thi ta can co cach nem throw va throws rieng biet.
+//			throw new AppException(ErrorCode.USER_EXISTED);
+//
+//			// throw new RuntimeException();
+//			//            throw new RuntimeException(ErrorCode.UNCATEGORIZED_EXCEPTION);
+//		}
 
-			// khi ta dinh nghia 1 exception thi se co 2 loai:1 loai la do nguoi dung tu dinh nghia va
-			// loai con lai la duoc built tu exception: loai nay lai duoc chia ra lam 2 loai nho hon la
-			// loai check exception (nhu Exception, IOException, SQLException ...) va loai con lai la
-			// uncheck exception (nhu RuntimeException ...). Voi loai check exception khi nem loi throw
-			// thi ben ngoai ta phai dung den tu khoa throws con loai con lai chi nem loi throw la du.
-			// Doi voi excep do nguoi dung dinh nghia thi phu thuoc vao khi ta extends Exception thuoc loai
-			// nao, ung voi loai nao thi ta can co cach nem throw va throws rieng biet.
-			throw new AppException(ErrorCode.USER_EXISTED);
+        // cach dung thong thuong
+        //        User user = new User();
+        //        user.setUserName(request.getUserName());
+        //        user.setPassword(request.getPassword());
+        //        user.setFirstName(request.getFirstName());
+        //        user.setLastName(request.getLastName());
+        //        user.setDob(request.getDob());
 
-			// throw new RuntimeException();
-			//            throw new RuntimeException(ErrorCode.UNCATEGORIZED_EXCEPTION);
-		}
+        // su dung builder
+        //        User user = User.builder()
+        //                .userName(request.getUserName())
+        //                .password(request.getPassword())
+        //                .firstName(request.getFirstName())
+        //                .lastName(request.getLastName())
+        //                .dob(request.getDob())
+        //                .build();
 
-		// cach dung thong thuong
-		//        User user = new User();
-		//        user.setUserName(request.getUserName());
-		//        user.setPassword(request.getPassword());
-		//        user.setFirstName(request.getFirstName());
-		//        user.setLastName(request.getLastName());
-		//        user.setDob(request.getDob());
+        // dung mapper
+        User user = userMapper.toUser(request);
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
 
-		// su dung builder
-		//        User user = User.builder()
-		//                .userName(request.getUserName())
-		//                .password(request.getPassword())
-		//                .firstName(request.getFirstName())
-		//                .lastName(request.getLastName())
-		//                .dob(request.getDob())
-		//                .build();
+        HashSet<Role> roles = new HashSet<>();
+        roleRepository.findById(PredefinedRole.USER_ROLE).ifPresent(roles::add);
 
-		// dung mapper
-		User user = userMapper.toUser(request);
+        user.setRoles(roles);
 
-		user.setPassword(passwordEncoder.encode(request.getPassword()));
+        try {
+            user = userRepository.save(user);
+        } catch (DataIntegrityViolationException e) {
+            throw new AppException(ErrorCode.USER_EXISTED);
+        }
+        return userMapper.toUserResponse(user);
+    }
 
-		HashSet<String> roles = new HashSet<>();
-		roles.add(Role.USER.name());
-		//        user.setRoles(roles);
+    // dung voi permission thi dung hasAuthority boi vi ko co them ROLE
+    @PreAuthorize("hasRole('ADMIN')")
+    //    @PreAuthorize("hasAuthority('SCOPE_ROLE_ADMIN')")
+    public List<UserResponse> getAllUser() {
+        log.info("in method get users");
+        return userMapper.toUserResponse(userRepository.findAll());
+    }
 
-		return userMapper.toUserResponse(userRepository.save(user));
-	}
+    // nay la duoc dung cho cai dk la vua co id cua nguoi dung, vua co token phu hop voi id cua nguoi dung
+    // POST khac Pre o cho la POST se thuc hien cau lenh ben trong roi moi kiem tra dieu kien phu hop, neu dung moi tra
+    // ve ket qua
+    // post dung cho truong hop lay thong tin cua ban than ra, nguoi khac khong the lay duoc thong tin cua minh
+    // Pre kiem tra dieu kien neu dung thi moi thuc hien cau lenh
+    @PostAuthorize("returnObject.userName == authentication.name")
+    public UserResponse getSingleUser(String userID) {
+        log.info("Method is working");
+        return userMapper.toUserResponse(
+                userRepository.findById(userID).orElseThrow(() -> new RuntimeException("User not found")));
+    }
 
-	// dung voi permission thi dung hasAuthority boi vi ko co them ROLE
-	@PreAuthorize("hasRole('ADMIN')")
-	//    @PreAuthorize("hasAuthority('SCOPE_ROLE_ADMIN')")
-	public List<UserResponse> getAllUser() {
-		log.info("in method get users");
-		return userMapper.toUserResponse(userRepository.findAll());
-	}
+    public UserResponse getInfoFromToken() {
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        User user = userRepository
+                .findByUserName(authentication.getName())
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 
-	// nay la duoc dung cho cai dk la vua co id cua nguoi dung, vua co token phu hop voi id cua nguoi dung
-	// POST khac Pre o cho la POST se thuc hien cau lenh ben trong roi moi kiem tra dieu kien phu hop, neu dung moi tra
-	// ve ket qua
-	// post dung cho truong hop lay thong tin cua ban than ra, nguoi khac khong the lay duoc thong tin cua minh
-	// Pre kiem tra dieu kien neu dung thi moi thuc hien cau lenh
-	@PostAuthorize("returnObject.userName == authentication.name")
-	public UserResponse getSingleUser(String userID) {
-		log.info("Method is working");
-		return userMapper.toUserResponse(
-				userRepository.findById(userID).orElseThrow(() -> new RuntimeException("User not found")));
-	}
+        return userMapper.toUserResponse(user);
+    }
 
-	public UserResponse getInfoFromToken() {
-		var authentication = SecurityContextHolder.getContext().getAuthentication();
-		User user = userRepository
-				.findByUserName(authentication.getName())
-				.orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+    public UserResponse updateUser(String userID, UserUpdateRequest request) {
 
-		return userMapper.toUserResponse(user);
-	}
+        User user = userRepository.findById(userID).orElseThrow(() -> new RuntimeException("User not found"));
 
-	public UserResponse updateUser(String userID, UserUpdateRequest request) {
+        userMapper.updateUser(user, request);
+        if (request.getPassword() != null && !request.getPassword().isEmpty()) {
+            user.setPassword(passwordEncoder.encode(request.getPassword()));
 
-		User user = userRepository.findById(userID).orElseThrow(() -> new RuntimeException("User not found"));
+            log.info("user" + user);
+        }
 
-		userMapper.updateUser(user, request);
-		if (request.getPassword() != null && !request.getPassword().isEmpty()) {
-			user.setPassword(passwordEncoder.encode(request.getPassword()));
+        if (request.getRoles() != null && !request.getRoles().isEmpty()) {
 
-			log.info("user" + user);
-		}
+            List<com.rs.demo2.entity.Role> roles = roleRepository.findAllById(request.getRoles());
+            user.setRoles(new HashSet<>(roles));
+        }
+        // use mapper
+        //        user.setPassword(request.getPassword());
+        //        user.setFirstName(request.getFirstName());
+        //        user.setLastName(request.getLastName());
+        //        user.setDob(request.getDob());
 
-		if (request.getRoles() != null && !request.getRoles().isEmpty()) {
+        // chu y khi update user voi postman thi cho du cac truong trong UserUpdateRequest co thieu truong nao
+        // di chang nua neu ko du ca 2 truong la roles va password thi se loi, boi vi 2 truong do ta dung no
+        // o duoi, cai nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE
+        // co tac dung la vang truong nao thi truong do ko bi set ve null thoi chu 2 truong nay van phia bat buoc
 
-			List<com.rs.demo2.entity.Role> roles = roleRepository.findAllById(request.getRoles());
-			user.setRoles(new HashSet<>(roles));
-		}
-		// use mapper
-		//        user.setPassword(request.getPassword());
-		//        user.setFirstName(request.getFirstName());
-		//        user.setLastName(request.getLastName());
-		//        user.setDob(request.getDob());
+        //        user.setPassword(passwordEncoder.encode(request.getPassword()));
 
-		// chu y khi update user voi postman thi cho du cac truong trong UserUpdateRequest co thieu truong nao
-		// di chang nua neu ko du ca 2 truong la roles va password thi se loi, boi vi 2 truong do ta dung no
-		// o duoi, cai nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE
-		// co tac dung la vang truong nao thi truong do ko bi set ve null thoi chu 2 truong nay van phia bat buoc
+        // co the kiem tra neu co password thi ta update, or co roles truyen vao thi ta update cung duoc.
 
-		//        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        //        var roles = roleRepository.findAllById(request.getRoles());
+        //        user.setRoles(new HashSet<>(roles));
 
-		// co the kiem tra neu co password thi ta update, or co roles truyen vao thi ta update cung duoc.
+        return userMapper.toUserResponse(userRepository.save(user));
+    }
 
-		//        var roles = roleRepository.findAllById(request.getRoles());
-		//        user.setRoles(new HashSet<>(roles));
-
-		return userMapper.toUserResponse(userRepository.save(user));
-	}
-
-	public void deleteUser(String userID) {
-		User user = userRepository.findById(userID).orElseThrow(() -> new RuntimeException("User not found"));
-		userRepository.delete(user);
-	}
+    public void deleteUser(String userID) {
+        User user = userRepository.findById(userID).orElseThrow(() -> new RuntimeException("User not found"));
+        userRepository.delete(user);
+    }
 }

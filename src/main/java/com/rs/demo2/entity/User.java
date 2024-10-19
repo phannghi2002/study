@@ -19,6 +19,8 @@ public class User {
 	@GeneratedValue(strategy = GenerationType.UUID)
 	String id;
 
+	//COLLATE utf8mb4_unicode_ci la khong phan biet chu hoa va chu thuong
+	@Column(name = "userName", unique = true, columnDefinition = "VARCHAR(255) COLLATE utf8mb4_unicode_ci")
 	String userName;
 	String password;
 	String firstName;
