@@ -2,13 +2,13 @@ package com.rs.demo2.configuration;
 
 import java.util.HashSet;
 
-import com.rs.demo2.constant.PredefinedRole;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import com.rs.demo2.constant.PredefinedRole;
 import com.rs.demo2.entity.User;
 import com.rs.demo2.repository.UserRepository;
 
