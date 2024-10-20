@@ -1,2 +1,1 @@
-1.logout with JWT token, use for when hacker attack get token and token this not yet expired
-2.custom with CustomJwtDecoder use add logic check jwt have logout isn't it ?
+profile is create file new and config in Add VM options, enviroment variable is create variable in system. Different is profile is create file and enviroment variable is create variable.
