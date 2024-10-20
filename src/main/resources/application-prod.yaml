@@ -1,0 +1,7 @@
+
+jwt:
+#  signerKey: "8bQokqB6IUj7VLUcM2iGVaQZTt3akYSegTUbSszVa6jK36cm3hguhTlaEzndDVSC"
+  valid-duration: 7200 # in seconds //thoi gian token het hieu luc
+  refreshable-duration: 72000 # in seconds //trong khoang thoi gian nay thi van co the refresh duoc token moi nhung chi dung no de refresh ma
+  # khong the truy cap vao cac quyen bat xac thuc, boi vi token cu da het han, refresh no la 1 permitAll nen ta ko can phai xac thuc
+  #nhung ta van cai dat thoi gian de no ko the xac thuc duoc nua

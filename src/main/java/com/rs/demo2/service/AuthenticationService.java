@@ -7,6 +7,7 @@ import java.util.Date;
 import java.util.StringJoiner;
 import java.util.UUID;
 
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -45,6 +46,7 @@ public class AuthenticationService {
 	UserRepository userRepository;
 
 	InvalidatedTokenRepository invalidatedTokenRepository;
+
 
 	@NonFinal // khong inject no vao constructor
 	@Value("${jwt.signerKey}")
@@ -144,6 +146,8 @@ public class AuthenticationService {
 	}
 
 	public AuthenticationResponse authenticate(AuthenticationRequest request) {
+		log.info("Singer key {}", SIGNER_KEY);
+
 		var user = userRepository
 				.findByUserName(request.getUserName())
 				.orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
