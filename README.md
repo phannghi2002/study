@@ -1,2 +1,1 @@
-1.logout with JWT token, use for when hacker attack get token and token this not yet expired
-2.custom with CustomJwtDecoder use add logic check jwt have logout isn't it ?
+three ways build and deploy: 1. use ./mnnw package -Dskiptests 2. use maven: mvn package -Dskiptests 3. use maven in intelliJ
