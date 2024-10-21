@@ -22,6 +22,7 @@ spring:
     password: ${DBMS_PASSWORD:root}
     driver-class-name: "com.mysql.cj.jdbc.Driver"
   jpa:
+    database-platform: org.hibernate.dialect.MySQLDialect  # Ensure this is set
     hibernate:
       ddl-auto: update
     show-sql: true
